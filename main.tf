@@ -22,7 +22,7 @@ resource "aws_eks_cluster" "vllm_cluster" {
 resource "aws_eks_node_group" "gpu_nodes" {
   cluster_name    = aws_eks_cluster.vllm_cluster.name
   node_group_name = "gpu-worker-nodes"
-  node_role_arn   = "arn:aws:iam::390888050376:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup" # Placeholder - another IAM role
+  node_role_arn   = "arn:aws:iam::390888050376:role/EKSNodeRole" # Placeholder - another IAM role
   subnet_ids      = ["subnet-01ee801f5cb4e23e6", "subnet-0e2f7509fe36e9b36"] # Placeholder - must be same as cluster
 
   # --- CRITICAL GPU CONFIGURATION ---
