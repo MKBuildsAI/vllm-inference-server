@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-llama3-service
+spec:
+  # Type: LoadBalancer will automatically provision a cloud load balancer (like an ELB on AWS)
+  # and give you an external IP address.
+  type: LoadBalancer
+  selector:
+    app: vllm-llama3
+  ports:
+  - protocol: TCP
+    port: 80       # The port the outside world will talk to
+    targetPort: 8000 # The port the container is listening on
