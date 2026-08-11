@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-llama3-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-llama3
+  template:
+    metadata:
+      labels:
+        app: vllm-llama3
+    spec:
+      containers:
+      - name: vllm-server
+        # IMPORTANT: Once we push the image to a registry (like ECR),
+        # you would replace 'vllm-server:latest' with the full ECR path.
+        # For now, this is a placeholder.
+        image: vllm-server:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        # --- THIS IS THE MOST IMPORTANT PART FOR AI ---
+        resources:
+          limits:
+            # This line tells K8s to schedule this pod on a node
+            # that has a GPU and to allocate one GPU to this container.
+            nvidia.com/gpu: "1"
+        # --- THIS IS THE SECOND MOST IMPORTANT PART ---
+        # A readiness probe tells K8s when your application is TRULY ready.
+        # The pod is running, but is the model loaded? This checks.
+        readinessProbe:
+          httpGet:
+            path: /health # vLLM provides a health check endpoint
+            port: 8000
+          initialDelaySeconds: 60 # Give it time to start
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 12 # Give it up to 2 minutes (12*10s) to download the model
