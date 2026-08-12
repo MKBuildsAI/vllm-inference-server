@@ -1,54 +1,62 @@
 # ---------- STAGE 1: Builder ----------
 FROM nvidia/cuda:12.1.1-devel-ubuntu22.04 AS builder
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    git \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 \
+        python3-pip \
+        python3-venv \
+        git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
+# Create a self-contained virtual environment
+RUN python3 -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+
+RUN pip install --no-cache-dir --upgrade pip
+
 COPY requirements.txt .
 
-RUN python3 -m pip install --upgrade pip
+# Install dependencies, pulling PyTorch specifically from the CUDA 12.1 wheel index
+RUN pip install --no-cache-dir -r requirements.txt \
+    --extra-index-url https://download.pytorch.org/whl/cu121
 
-RUN python3 -m pip install \
-    --no-cache-dir \
-    -r requirements.txt
 
 # ---------- STAGE 2: Runtime ----------
 FROM nvidia/cuda:12.1.1-base-ubuntu22.04
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PATH="/app/venv/bin:$PATH" \
+    HF_HOME="/app/.cache/huggingface"
 
-RUN apt-get update && apt-get install -y \
-    python3 \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Run as non-root
-RUN useradd -m -u 1000 appuser
+# Create non-root user with home directory
+RUN useradd -ms /bin/bash appuser
 
 WORKDIR /app
 
-# Copy Python libraries
-COPY --from=builder /usr/local/lib/python3.10/ /usr/local/lib/python3.10/
+# Copy the pre-built virtual environment from builder
+COPY --from=builder /app/venv /app/venv
 
-# Copy pip-installed executables
-COPY --from=builder /usr/local/bin/ /usr/local/bin/
+# Create cache directory and grant ownership to non-root user
+RUN mkdir -p /app/.cache && chown -R appuser:appuser /app
 
 USER appuser
 
 EXPOSE 8000
 
 CMD ["python3", "-m", "vllm.entrypoints.openai.api_server", \
-     "--model", "TheBloke/Meta-Llama-3-8B-Instruct-AWQ", \
+     "--model", "TheBloke/TinyLlama-1.1B-Chat-v1.0-AWQ", \
      "--quantization", "awq", \
-     "--max-model-len", "4096", \
-     "--gpu-memory-utilization", "0.9", \
+     "--max-model-len", "2048", \
+     "--gpu-memory-utilization", "0.85", \
      "--host", "0.0.0.0", \
      "--port", "8000"]
