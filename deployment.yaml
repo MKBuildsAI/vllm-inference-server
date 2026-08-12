@@ -17,7 +17,7 @@ spec:
         # IMPORTANT: Once we push the image to a registry (like ECR),
         # you would replace 'vllm-server:latest' with the full ECR path.
         # For now, this is a placeholder.
-        image: vllm-server:latest
+        image: 390888050376.dkr.ecr.us-east-1.amazonaws.com/vllm-server:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
