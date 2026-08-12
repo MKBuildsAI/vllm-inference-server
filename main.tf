@@ -36,7 +36,7 @@ resource "aws_eks_node_group" "gpu_nodes" {
   }
 
   # Ensure the nodes can be reached
-  remote_access {
+  # remote_access {
     ec2_ssh_key = "vllm.pem" # Placeholder
   }
 
