@@ -1,78 +1,37 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "vllm-chart.fullname" . }}
-  labels:
-    {{- include "vllm-chart.labels" . | nindent 4 }}
+  name: vllm-llama3-deployment
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: {{.Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "vllm-chart.selectorLabels" . | nindent 6 }}
+      app: vllm-llama3
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
-        {{- include "vllm-chart.labels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+        app: vllm-llama3
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ include "vllm-chart.serviceAccountName" . }}
-      {{- with .Values.podSecurityContext }}
-      securityContext:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       containers:
-        - name: {{ .Chart.Name }}
-          {{- with .Values.securityContext }}
-          securityContext:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
-          {{- with .Values.livenessProbe }}
-          livenessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.readinessProbe }}
-          readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.volumeMounts }}
-          volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with .Values.volumes }}
-      volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      - name: vllm-server
+        # IMPORTANT: Once we push the image to a registry (like ECR),
+        # you would replace 'vllm-server:latest' with the full ECR path.
+        # For now, this is a placeholder.
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: 8000
+        # --- THIS IS THE MOST IMPORTANT PART FOR AI ---
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        # --- THIS IS THE SECOND MOST IMPORTANT PART ---
+        # A readiness probe tells K8s when your application is TRULY ready.
+        # The pod is running, but is the model loaded? This checks.
+        readinessProbe:
+          httpGet:
+            path: /health # vLLM provides a health check endpoint
+            port: 8000
+          initialDelaySeconds: 60 # Give it time to start
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 12 # Give it up to 2 minutes (12*10s) to download the model
