@@ -37,6 +37,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 \
+	python3-distutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user with home directory
