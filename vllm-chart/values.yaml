@@ -3,7 +3,7 @@ replicaCount: 1
 
 image:
   repository: 390888050376.dkr.ecr.us-east-1.amazonaws.com/vllm-server
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   # The tag for the image. By default, it uses the chart's appVersion.
   tag: "latest"
 
