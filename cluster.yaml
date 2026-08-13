@@ -1,0 +1,27 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: vllm-prod-cluster
+  region: us-east-1
+  version: "1.32"
+
+managedNodeGroups:
+  - name: gpu-worker-nodes
+    instanceType: g4dn.xlarge
+    desiredCapacity: 1
+    # THIS IS THE KEY: Use the official EKS-optimized AMI for GPUs.
+    # eksctl will ensure the correct drivers are installed with this AMI family.
+    amiFamily: "AmazonLinux2"
+    iam:
+      withAddonPolicies:
+        imageBuilder: true
+        albIngress: true
+        
+# This section tells eksctl to install and manage the add-ons correctly.
+# This guarantees version compatibility.
+addons:
+- name: aws-ebs-csi-driver
+# The nvidia-device-plugin is NOT a managed EKS add-on. We will install it manually
+# after the cluster is created, on a known-good node.
+- name: aws-load-balancer-controller
