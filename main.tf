@@ -33,15 +33,13 @@ resource "aws_eks_node_group" "gpu_nodes" {
     desired_size = 1 # Start with one GPU node
     max_size     = 2
     min_size     = 1
+  
   }
+}
 
   # Ensure the nodes can be reached
-  # remote_access {
-    ec2_ssh_key = "vllm.pem" # Placeholder
-  }
+  # remote_access
 
   # Dependency to ensure the cluster is created before the nodes
-  depends_on = [
-    aws_eks_cluster.vllm_cluster,
-  ]
-}
+  #depends_on
+
